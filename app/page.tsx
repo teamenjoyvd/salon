@@ -13,67 +13,74 @@ interface Document {
 
 const documents: Document[] = [
   {
+    id: 'master',
+    name: 'master-registar-produkti-protokoli',
+    title: 'Мастер-регистър',
+    description: 'Всички продукти и всички протоколи — източник на истина',
+    order: 1,
+  },
+  {
     id: 'cheklist',
     name: 'startov-cheklist',
     title: 'Стартов чеклист',
     description: 'Какво трябва да е готово преди първи клиент',
-    order: 1,
+    order: 2,
   },
   {
     id: 'risk',
     name: 'risk-registar-artistry',
     title: 'Риск-регистър',
     description: '10 риска в 3 нива, с ранни сигнали',
-    order: 2,
+    order: 3,
   },
   {
     id: 'protokoli',
     name: 'protokoli-artistry',
     title: 'Кабинетни протоколи',
     description: '3 протокола с разход и марж',
-    order: 3,
+    order: 4,
   },
   {
     id: 'finansi',
     name: 'finansov-model-artistry',
     title: 'Финансов модел',
     description: 'ABO цени, себестойност, break-even',
-    order: 4,
+    order: 5,
   },
   {
     id: 'pazar',
     name: 'pazarno-prouchvane-sofia',
     title: 'Пазарно проучване',
     description: '47 цени от 27 обекта в София',
-    order: 5,
+    order: 6,
   },
   {
     id: 'benchmark',
     name: 'benchmark-uredi',
     title: 'Бенчмарк на уредите',
     description: 'Кой с какво работи и как се сравняваш',
-    order: 6,
+    order: 7,
   },
   {
     id: 'higiena',
     name: 'protokol-higiena-DRAFT',
     title: 'Хигиенен протокол',
     description: 'ПРОЕКТ — за потвърждение от Amway BG',
-    order: 7,
+    order: 8,
   },
   {
     id: 'saglasie',
     name: 'informirano-saglasie-DRAFT',
     title: 'Информирано съгласие',
     description: 'ПРОЕКТ — за адвокатски преглед',
-    order: 8,
+    order: 9,
   },
   {
     id: 'promt',
     name: 'optimalen-promt-artistry',
     title: 'Оптимизиран промпт',
     description: 'Изходното задание, преработено',
-    order: 9,
+    order: 10,
   },
 ]
 
@@ -164,7 +171,16 @@ export default function Home() {
     if (window.history.length > 1) {
       window.history.back()
     } else {
+      goHome()
+    }
+  }
+
+  // Distinct from goBack: one step to the menu, however deep the browsing got.
+  const goHome = () => {
+    if (window.location.hash) {
       window.location.hash = ''
+    } else {
+      setCurrentDoc(null)
     }
   }
 
@@ -178,11 +194,30 @@ export default function Home() {
       <header>
         <div className="hbar">
           {activeDoc && (
-            <button id="back" type="button" onClick={goBack}>
-              <span aria-hidden="true">‹</span> Всички документи
-            </button>
+            <div className="navrow">
+              <button id="back" type="button" onClick={goBack}>
+                <span aria-hidden="true">‹</span> Назад
+              </button>
+              <a
+                className="homelink"
+                href="#"
+                onClick={(e) => {
+                  e.preventDefault()
+                  goHome()
+                }}
+              >
+                <span aria-hidden="true">⌂</span> Начало
+              </a>
+            </div>
           )}
-          <a className="brandlink" href="#">
+          <a
+            className="brandlink"
+            href="#"
+            onClick={(e) => {
+              e.preventDefault()
+              goHome()
+            }}
+          >
             <h1 className="brand">{BASE_TITLE}</h1>
           </a>
           <div className="meta">
@@ -251,6 +286,20 @@ export default function Home() {
                   </a>
                 )}
               </nav>
+            )}
+
+            {!loading && (
+              <p className="homerow">
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    goHome()
+                  }}
+                >
+                  <span aria-hidden="true">⌂</span> Всички документи
+                </a>
+              </p>
             )}
           </>
         )}
