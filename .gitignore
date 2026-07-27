@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.env.local
+.env.*.local
+*.pem
+.DS_Store
+.vercel/
+out/
+*.py
+*.html
+ARTISTRY-rabotna-papka.html
+build.py
+fin.py
+stats.py
+.claude/
