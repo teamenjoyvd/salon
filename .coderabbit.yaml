@@ -1,0 +1,14 @@
+# CodeRabbit is disabled for this repository.
+# See CLAUDE.md — this project pushes directly to master and does not use PRs,
+# so there is no PR surface for CodeRabbit to review.
+reviews:
+  auto_review:
+    enabled: false
+    drafts: false
+  review_status: false
+  high_level_summary: false
+  poem: false
+  collapse_walkthrough: true
+  request_changes_workflow: false
+chat:
+  auto_reply: false
