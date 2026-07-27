@@ -19,10 +19,19 @@ export function DocumentViewer({
     return marked(content)
   }, [content])
 
+  if (loading) {
+    return (
+      <section className="doc" aria-busy="true" aria-label={title}>
+        <p className="loading">Зареждане…</p>
+      </section>
+    )
+  }
+
   return (
-    <section className="doc on">
-      <div dangerouslySetInnerHTML={{ __html: html }} />
-      {loading && <p>Зареждане...</p>}
-    </section>
+    <section
+      className="doc"
+      aria-label={title}
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   )
 }

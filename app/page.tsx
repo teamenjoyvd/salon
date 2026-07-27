@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { DocumentViewer } from '@/components/DocumentViewer'
 
 interface Document {
@@ -77,82 +77,186 @@ const documents: Document[] = [
   },
 ]
 
+const BASE_TITLE = 'ARTISTRY Derma-Architect'
+
+function docFromHash(): string | null {
+  if (typeof window === 'undefined') return null
+  const id = window.location.hash.replace(/^#\/?/, '')
+  return documents.some((d) => d.id === id) ? id : null
+}
+
 export default function Home() {
   const [currentDoc, setCurrentDoc] = useState<string | null>(null)
   const [docContent, setDocContent] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  // Documents never change during a session, so cache each one after first fetch.
+  const cache = useRef<Record<string, string>>({})
+
+  const loadDocument = useCallback(async (docId: string) => {
+    const doc = documents.find((d) => d.id === docId)
+    if (!doc) return
+
+    const cached = cache.current[docId]
+    if (cached) {
+      setDocContent(cached)
+      setLoading(false)
+      return
+    }
+
+    setLoading(true)
+    setDocContent('')
+    try {
+      const response = await fetch(`/docs/${doc.name}.md`)
+      if (!response.ok) throw new Error(`HTTP ${response.status}`)
+      const content = await response.text()
+      cache.current[docId] = content
+      setDocContent(content)
+    } catch (error) {
+      console.error('Error loading document:', error)
+      setDocContent(
+        '# Документът не се зареди\n\nПроверката на връзката и презареждането на страницата обикновено решават проблема.'
+      )
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // The URL hash is the source of truth, so the browser's own Back button works.
+  useEffect(() => {
+    const sync = () => setCurrentDoc(docFromHash())
+    sync()
+    window.addEventListener('popstate', sync)
+    window.addEventListener('hashchange', sync)
+    return () => {
+      window.removeEventListener('popstate', sync)
+      window.removeEventListener('hashchange', sync)
+    }
+  }, [])
 
   useEffect(() => {
     if (currentDoc) {
       loadDocument(currentDoc)
-    }
-  }, [currentDoc])
-
-  const loadDocument = async (docId: string) => {
-    setLoading(true)
-    try {
-      const doc = documents.find((d) => d.id === docId)
-      if (doc) {
-        const response = await fetch(`/docs/${doc.name}.md`)
-        const content = await response.text()
-        setDocContent(content)
-      }
-    } catch (error) {
-      console.error('Error loading document:', error)
-      setDocContent('Грешка при зареждането на документа')
-    } finally {
+    } else {
+      setDocContent('')
       setLoading(false)
     }
+  }, [currentDoc, loadDocument])
+
+  const activeDoc = documents.find((d) => d.id === currentDoc) || null
+
+  useEffect(() => {
+    document.title = activeDoc ? `${activeDoc.title} · ${BASE_TITLE}` : BASE_TITLE
+  }, [activeDoc])
+
+  // Scroll to the top on navigation, otherwise you land mid-document.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' })
+  }, [currentDoc])
+
+  const openDoc = (id: string) => {
+    if (id === currentDoc) return
+    window.location.hash = id
   }
+
+  const goBack = () => {
+    // Prefer real history so Back and this button stay in sync; fall back to a
+    // fresh entry when the document was opened directly from a shared link.
+    if (window.history.length > 1) {
+      window.history.back()
+    } else {
+      window.location.hash = ''
+    }
+  }
+
+  const index = activeDoc ? documents.indexOf(activeDoc) : -1
+  const prevDoc = index > 0 ? documents[index - 1] : null
+  const nextDoc =
+    index >= 0 && index < documents.length - 1 ? documents[index + 1] : null
 
   return (
     <>
       <header>
-        <button
-          id="back"
-          className={currentDoc ? 'show' : ''}
-          onClick={() => {
-            setCurrentDoc(null)
-            setDocContent('')
-          }}
-        >
-          ‹ Всички документи
-        </button>
-        <h1 className="brand" id="ttl">
-          ARTISTRY Derma-Architect
-        </h1>
-        <div className="meta" id="sub">
-          Работна папка · 27 юли 2026 · {documents.length} документа
+        <div className="hbar">
+          {activeDoc && (
+            <button id="back" type="button" onClick={goBack}>
+              <span aria-hidden="true">‹</span> Всички документи
+            </button>
+          )}
+          <a className="brandlink" href="#">
+            <h1 className="brand">{BASE_TITLE}</h1>
+          </a>
+          <div className="meta">
+            {activeDoc
+              ? `${activeDoc.order} от ${documents.length} · ${activeDoc.title}`
+              : `Работна папка · 27 юли 2026 · ${documents.length} документа`}
+          </div>
         </div>
       </header>
 
       <main>
-        {!currentDoc ? (
-          <div id="menu">
+        {!activeDoc ? (
+          <nav id="menu" aria-label="Документи">
             {documents.map((doc) => (
-              <button
+              <a
                 key={doc.id}
                 className="navbtn"
-                onClick={() => setCurrentDoc(doc.id)}
+                href={`#${doc.id}`}
+                onClick={(e) => {
+                  e.preventDefault()
+                  openDoc(doc.id)
+                }}
               >
                 <span className="n">{doc.order}</span>
                 <span className="tt">{doc.title}</span>
                 <span className="ss">{doc.description}</span>
-              </button>
+              </a>
             ))}
-          </div>
+          </nav>
         ) : (
-          <DocumentViewer
-            content={docContent}
-            loading={loading}
-            title={documents.find((d) => d.id === currentDoc)?.title || ''}
-          />
+          <>
+            <DocumentViewer
+              content={docContent}
+              loading={loading}
+              title={activeDoc.title}
+            />
+
+            {!loading && (
+              <nav className="docnav" aria-label="Съседни документи">
+                {prevDoc ? (
+                  <a
+                    className="docnav-item prev"
+                    href={`#${prevDoc.id}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      openDoc(prevDoc.id)
+                    }}
+                  >
+                    <span className="dir">‹ Предишен</span>
+                    <span className="ttl">{prevDoc.title}</span>
+                  </a>
+                ) : (
+                  <span />
+                )}
+                {nextDoc && (
+                  <a
+                    className="docnav-item next"
+                    href={`#${nextDoc.id}`}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      openDoc(nextDoc.id)
+                    }}
+                  >
+                    <span className="dir">Следващ ›</span>
+                    <span className="ttl">{nextDoc.title}</span>
+                  </a>
+                )}
+              </nav>
+            )}
+          </>
         )}
       </main>
 
-      <footer>
-        © 2026 ARTISTRY Derma-Architect · Всички права запазени
-      </footer>
+      <footer>© 2026 ARTISTRY Derma-Architect · Всички права запазени</footer>
     </>
   )
 }
