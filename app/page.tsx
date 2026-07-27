@@ -51,7 +51,7 @@ const documents: Document[] = [
     id: 'pazar',
     name: 'pazarno-prouchvane-sofia',
     title: 'Пазарно проучване',
-    description: '47 цени от 27 обекта в София',
+    description: '90+ цени от 37 обекта, с пакетна икономика',
     order: 6,
   },
   {
